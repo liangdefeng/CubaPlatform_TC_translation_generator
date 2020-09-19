@@ -14,39 +14,43 @@ import java.nio.file.*;
 import java.util.Comparator;
 import java.util.Objects;
 
+/**
+ * A service aim to
+ */
 @Service
 public class TraditionalChineseConvertService {
 
+    private static String ZH_CN = "zh_CN";
+    private static String ZH_HK = "zh_HK";
+    private static String CN = "CN";
+    private static String HK = "CN";
     private static Logger log = LoggerFactory.getLogger(TraditionalChineseConvertService.class);
 
-    @Value("${cuba.platform.translation.path}")
-    private String cubaPlatformTranslationPath;
-
-    @Value("${delete.if.exist}")
-    private boolean deleteIfExist;
+    @Value("${cuba.platform.translation.content.path}")
+    private String contentPath;
 
     public boolean process() {
 
         log.info("start process");
 
         // Check if the paths are set.
-        if (Objects.isNull(cubaPlatformTranslationPath)) {
+        if (Objects.isNull(contentPath)) {
             log.warn("The Cuba Platform translation path is null.");
             return false;
         }
 
-        Path translationPath = Paths.get(cubaPlatformTranslationPath);
+        Path translationPath = Paths.get(contentPath);
         if (Files.notExists(translationPath)) {
             log.warn("The Cuba Platform translation path doesn't exist.");
             return false;
         }
 
-        // The zh_CN path
+        // zh_CN's path
         String zhCNPathstr;
-        if (cubaPlatformTranslationPath.endsWith(File.separator)) {
-            zhCNPathstr = cubaPlatformTranslationPath + "zh_CN" + File.separator;
+        if (contentPath.endsWith(File.separator)) {
+            zhCNPathstr = contentPath + ZH_CN + File.separator;
         } else {
-            zhCNPathstr = cubaPlatformTranslationPath + File.separator + "zh_CN" + File.separator;
+            zhCNPathstr = contentPath + File.separator + ZH_CN + File.separator;
         }
         Path zhCNPath = Paths.get(zhCNPathstr);
         if (Files.notExists(zhCNPath)) {
@@ -56,15 +60,16 @@ public class TraditionalChineseConvertService {
 
         // The zh_HK path
         String zhHKPathstr;
-        if (cubaPlatformTranslationPath.endsWith(File.separator)) {
-            zhHKPathstr = cubaPlatformTranslationPath + "zh_HK" + File.separator;
+        if (contentPath.endsWith(File.separator)) {
+            zhHKPathstr = contentPath + ZH_HK + File.separator;
         } else {
-            zhHKPathstr = cubaPlatformTranslationPath + File.separator + "zh_HK" + File.separator;
+            zhHKPathstr = contentPath + File.separator + ZH_HK + File.separator;
         }
 
         // Delete folders.
         Path zhHKPath = Paths.get(zhHKPathstr);
         try {
+            // Delete all the files in zh_HK path if exists.
             if (Files.exists(zhHKPath)) {
                 Files.walk(zhHKPath)
                         .sorted(Comparator.reverseOrder())
@@ -76,30 +81,30 @@ public class TraditionalChineseConvertService {
                 Files.createDirectory(zhHKPath);
             }
 
+            // Copy all zh_CN's files to zh_HK folder.
             Files.copy(zhCNPath, zhHKPath, StandardCopyOption.REPLACE_EXISTING);
-            Files.walk(zhCNPath)
-                    .forEach(source -> {
-                        try {
-                            Files.copy(source, zhHKPath.resolve(zhCNPath.relativize(source)),StandardCopyOption.REPLACE_EXISTING);
-                        } catch (IOException e) {
-                            log.error(e.toString());
-                        }
-                    });
-        } catch (IOException e) {
-            log.error(e.toString());
-        }
+            Files.walk(zhCNPath).forEach(source -> {
+                try {
+                    Files.copy(source,
+                            zhHKPath.resolve(zhCNPath.relativize(source)),
+                            StandardCopyOption.REPLACE_EXISTING);
+                } catch (IOException e) {
+                    log.error(e.toString());
+                }
+            });
 
-
-
-        try {
+            // Read the line from source path and convert them to traditional Chinse and write to target file.
             Files.walk(zhHKPath, FileVisitOption.values())
                     .filter(path -> path.toString().endsWith("CN.properties"))
-                    .forEach(readFilePath -> {
+                    .forEach(sourcePath -> {
+                        // target files which should be ended with zh_HK.properites.
+                        Path targetPath = Paths.get(sourcePath.getParent()
+                                + File.separator
+                                + sourcePath.getFileName().toString().replace(CN,HK));
 
-                        Path writeFilePath = Paths.get(readFilePath.getParent() + File.separator + readFilePath.getFileName().toString().replace("CN","HK"));
                         try {
-                            BufferedWriter writer = Files.newBufferedWriter(writeFilePath);
-                            Files.lines(readFilePath).forEach(line -> {
+                            BufferedWriter writer = Files.newBufferedWriter(targetPath);
+                            Files.lines(sourcePath).forEach(line -> {
                                 String zhHK = ZhConverterUtil.toTraditional(line);
                                 try {
                                     writer.write(zhHK);
@@ -111,12 +116,13 @@ public class TraditionalChineseConvertService {
 
                             writer.flush();
                             writer.close();
-                            Files.deleteIfExists(readFilePath);
+
+                            // Delete the source file.
+                            Files.deleteIfExists(sourcePath);
                         } catch (IOException e) {
                             log.error(e.toString());
                         }
                     });
-
         } catch (IOException e) {
             log.error(e.toString());
         }
