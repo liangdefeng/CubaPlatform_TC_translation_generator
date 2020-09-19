@@ -15,7 +15,7 @@ https://github.com/houbb/opencc4j
 ## Clone the repositories
 We need to clone two repositories.
 ```
-git clone https://github.com/liangdefeng/cuba_translation.git
+git clone https://github.com/liangdefeng/CubaPlatform_TC_translation_generator.git
 git clone https://github.com/cuba-platform/translations.git
 
 ```
