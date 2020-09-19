@@ -1,6 +1,11 @@
 # Introduction
 A tool to generate Cuba Platform's Traditional Chinese translation according to existing Simple Chinese translation using opencc4j, an open source java library which translate Simple Chinese to Traditional Chinse, Or vice versa.
 
+OpenCC is a famous Simple Chinese to Traditional Chinese and Traditional Chinese to Simple Chinese converter. and opencc4j is the Java implementation of OpenCC.
+
+OpenCC
+https://github.com/BYVoid/OpenCC
+
 opencc4j
 https://github.com/houbb/opencc4j
 
