@@ -1,12 +1,12 @@
 # Introduction
-A console Spring Boot program to convert Cuba Platform's Simple Chinese translation to Traditional Chinese using opencc4j library.
+A tool to generate Cuba Platform's Traditional Chinese translation according to existing Simple Chinese translation using opencc4j, an open source java library which translate Simple Chinese to Traditional Chinse, Or vice versa.
 
 opencc4j
 https://github.com/houbb/opencc4j
 
-
 # How to run
-## Clone the repository
+## Clone the repositories
+We need to clone two repositories.
 ```
 git clone https://github.com/liangdefeng/cuba_translation.git
 git clone https://github.com/cuba-platform/translations.git
