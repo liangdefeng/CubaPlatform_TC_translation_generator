@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.Comparator;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A service aim to
@@ -23,7 +24,7 @@ public class TraditionalChineseConvertService {
     private static String ZH_CN = "zh_CN";
     private static String ZH_HK = "zh_HK";
     private static String CN = "CN";
-    private static String HK = "CN";
+    private static String HK = "HK";
     private static Logger log = LoggerFactory.getLogger(TraditionalChineseConvertService.class);
 
     @Value("${cuba.platform.translation.content.path}")
@@ -95,20 +96,36 @@ public class TraditionalChineseConvertService {
 
             // Read the line from source path and convert them to traditional Chinse and write to target file.
             Files.walk(zhHKPath, FileVisitOption.values())
-                    .filter(path -> path.toString().endsWith("CN.properties"))
+                    .filter(path -> path.toString().endsWith("zh_CN.properties"))
                     .forEach(sourcePath -> {
                         // target files which should be ended with zh_HK.properites.
-                        Path targetPath = Paths.get(sourcePath.getParent()
-                                + File.separator
-                                + sourcePath.getFileName().toString().replace(CN,HK));
-
+                        Path targetPath = Paths.get(sourcePath.toAbsolutePath().toString().replaceAll(CN, HK));
+                        log.info(String.format("Generating file: %s", translationPath.relativize(targetPath).toString()));
                         try {
                             BufferedWriter writer = Files.newBufferedWriter(targetPath);
-                            Files.lines(sourcePath).forEach(line -> {
-                                String zhHK = ZhConverterUtil.toTraditional(line);
+
+                            // Handle the first line
+                            Files.lines(sourcePath).findFirst().ifPresent(firstLine -> {
+                                String zhHK = ZhConverterUtil.toTraditional(firstLine)
+                                        .replaceAll("yyyy-MM-dd", "dd/MM/yyyy")
+                                        .replaceAll("YYYY-MM-DD", "DD/MM/YYY");
                                 try {
                                     writer.write(zhHK);
+                                } catch (IOException e) {
+                                    log.error(e.toString());
+                                }
+                            });
+
+                            // handle the rest lines.
+                            Files.lines(sourcePath)
+                                    .skip(1)
+                                    .forEach(line -> {
+                                String zhHK = ZhConverterUtil.toTraditional(line)
+                                        .replaceAll("yyyy-MM-dd", "dd/MM/yyyy")
+                                        .replaceAll("YYYY-MM-DD", "DD/MM/YYY");
+                                try {
                                     writer.newLine();
+                                    writer.write(zhHK);
                                 } catch (IOException e) {
                                     log.error(e.toString());
                                 }
